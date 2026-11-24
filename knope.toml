@@ -1,0 +1,59 @@
+# Releases: each change adds a note with `knope document-change` (in nix develop ./dev); every
+# push to main keeps one release PR up to date (.github/workflows/prepare-release.yml), and
+# merging it tags v<version> and publishes a GitHub release with the changelog (release.yml).
+# `herdr plugin install xav-ie/herdr-oil --ref v<version>` then installs that release.
+
+[package]
+versioned_files = [
+  "Cargo.toml",
+  { path = "Cargo.lock", dependency = "herdr-oil" },
+  { path = "herdr-plugin.toml", regex = "(?m)^version = \"(?<version>[^\"]+)\"" },
+]
+changelog = "CHANGELOG.md"
+
+[changes]
+ignore_conventional_commits = true
+
+[[workflows]]
+name = "document-change"
+
+[[workflows.steps]]
+type = "CreateChangeFile"
+
+[[workflows]]
+name = "prepare-release"
+
+[[workflows.steps]]
+type = "Command"
+command = "git switch -c release"
+
+[[workflows.steps]]
+type = "PrepareRelease"
+
+[[workflows.steps]]
+type = "Command"
+command = "git commit -m \"chore: prepare release $version\""
+
+[[workflows.steps]]
+type = "Command"
+command = "git push --force --set-upstream origin release"
+
+[[workflows.steps]]
+type = "CreatePullRequest"
+base = "main"
+
+[workflows.steps.title]
+template = "chore: prepare release $version"
+
+[workflows.steps.body]
+template = "Merging this tags $version and publishes it as a GitHub release.\n\n$changelog"
+
+[[workflows]]
+name = "release"
+
+[[workflows.steps]]
+type = "Release"
+
+[github]
+owner = "xav-ie"
+repo = "herdr-oil"

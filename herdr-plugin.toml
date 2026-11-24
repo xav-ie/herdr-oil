@@ -1,0 +1,35 @@
+id = "xav-ie.herdr-oil"
+name = "Herdr Oil"
+version = "0.1.0"
+min_herdr_version = "0.9.5"
+description = "Reorganize workspaces and tabs by editing an outline in $EDITOR: move, reorder, rename, create and close."
+platforms = ["linux", "macos"]
+
+[[build]]
+command = ["cargo", "build", "--release", "--locked"]
+
+[[actions]]
+id = "edit"
+title = "Oil: edit workspaces and tabs"
+description = "Open every workspace and tab as an outline in $EDITOR; save and quit to apply."
+contexts = ["pane", "workspace", "global"]
+command = ["./target/release/herdr-oil", "open"]
+
+# The popup hands a confirmed plan to this action, which herdr runs outside any
+# terminal: moving or closing the tab the popup was opened from ends the popup,
+# and the plan has to finish anyway. Not meant to be bound to a key.
+[[actions]]
+id = "apply"
+title = "Oil: apply a confirmed outline (internal)"
+description = "Run by the Oil popup to apply what you confirmed; does nothing on its own."
+contexts = ["global"]
+command = ["./target/release/herdr-oil", "apply"]
+
+# Opened by the `edit` action; actions run without a terminal.
+[[panes]]
+id = "editor"
+title = "Oil"
+placement = "popup"
+width = "80%"
+height = "80%"
+command = ["./target/release/herdr-oil", "edit"]

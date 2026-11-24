@@ -1,0 +1,45 @@
+name: CI
+
+# Run once per change: `pull_request` covers branches/PRs, `push` only on main
+# (post-merge). Scoping push to main avoids the double run you'd get when a
+# same-repo branch has an open PR (push + pull_request both firing).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+jobs:
+  # Build, clippy, formatting, and the unit and end-to-end tests (against a
+  # herdr built from the dev flake's pinned tag). Linux only: macOS would
+  # double the time for a plugin with no platform-specific code.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@448cde739abec1eaf0646249e3d25bb8d9bc7702 # v31.11.2
+      - run: nix flake check -L ./dev
+
+  # `herdr plugin install` builds with plain cargo, outside nix, so check that
+  # path too: a release build from the committed lockfile.
+  cargo-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: cargo build --release --locked
+      - run: test -x target/release/herdr-oil
